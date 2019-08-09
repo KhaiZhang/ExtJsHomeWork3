@@ -1,0 +1,8 @@
+﻿[
+{id:'class-0',text:'理科班1',children:[
+	{id:'student-0',text:'张三',leaf:true},{id:'student-1',text:'赵四',leaf:true},
+]},
+{id:'class-1',text:'文科班', children: [
+  {id:'student-2',text:'王五', leaf: true},{id:'student-3',text:'丁六', leaf: true}
+]}
+]

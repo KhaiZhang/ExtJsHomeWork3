@@ -1,0 +1,244 @@
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>Hello World</title>
+    <link rel="stylesheet" type="text/css" href="css/ext-all.css"/>
+
+    <!-- GC -->
+    <!-- LIBS -->
+    <script type="text/javascript" src="ext-base.js"></script>
+    <!-- ENDLIBS -->
+
+    <script type="text/javascript" src="ext-all.js"></script>
+    <script>
+      Ext.QuickTips.init();
+      Ext.onReady(function(){
+          let addStudentWin = new Ext.Window({
+            id:'addStudentWin',
+            hidden:true,
+            closeAction:'hide',//不添加此属性的话，点击x按钮后window自动销毁，再次show的时候会报错
+            items:[
+              
+              {
+                id:'studentForm',
+                labelWidth: 100,
+                title: 'add student',
+                xtype:'form',
+                // defaultType: 'textfield',
+                width:400,
+                labelAlign: 'center',
+                frame: true,
+                allowBlank:false,
+                items:[
+                  {
+                    xtype:'combo',
+                    id:'classList',
+                    mode:'local',
+                    msgTarget: 'side',
+                    allowBlank:false,
+                    fieldLabel:'班级列表',
+                    store: new Ext.data.ArrayStore({
+                      id:'classListStore',
+                      fields:['id','text'],
+                      data:[]
+                    }),
+                    valueField: 'id',
+                    displayField: 'text'
+                  },
+                  {
+                    xtype:'textfield',
+                    width:190,
+                    allowBlank:false,
+                    id:'studnetNameField',
+                    msgTarget: 'side',
+                    fieldLabel:'姓名'
+                  } 
+                ],
+                buttons:[{
+                  text: '提交',
+                  listeners:{
+                  'click': function(btn, form){
+                    let studentName = Ext.getCmp('studnetNameField').getValue()
+                    let classSelect = Ext.getCmp('classList').getValue()
+                    if(studentName === '' || classSelect=== '')
+                    {
+                      Ext.getCmp('studnetNameField').markInvalid('field is required!');
+                      Ext.getCmp('classList').markInvalid('field is required!');
+                    }else {
+                      let classList = Ext.getCmp('tree').getRootNode().childNodes;
+                      let currentNode = classList.find(e => e.id === classSelect);
+                      currentNode.appendChild({
+                        id: 'student-' + Date.now().toString(36),
+                        text: studentName,
+                        leaf:true
+                      })
+                      Ext.getCmp('addStudentWin').hide();
+                    }
+                    
+                  }}
+                }]
+              }
+            ]
+          })
+
+          let addClassWin = new Ext.Window({
+            id:'addClassWin',
+            hidden:true,
+            layout:'fit',
+            width:300,
+            height:200,
+            closeAction:'hide',
+            items:[
+              {
+                id:'classForm',
+                labelWidth: 100,
+                title: 'add student',
+                xtype:'form',
+                defaultType: 'textfield',
+                width:300,
+                labelAlign: 'center',
+                frame: true,
+                allowBlank:false,
+                items:[
+                  {
+                    id:'classNameField',
+                    msgTarget: 'side',
+                    fieldLabel:'班级名称'
+                  }
+                ],
+                buttons:[{
+                  text: '提交',
+                  listeners:{
+                  'click': function(btn, form){
+                    let value =Ext.getCmp('classNameField').getValue()
+                    if(value === '')
+                    {
+                      Ext.getCmp('classNameField').markInvalid('field is required!');
+                    }else {
+                      Ext.getCmp('tree').getRootNode().appendChild({
+                        id: 'class-' + Date.now().toString(36),
+                        text : value,
+                        children:[]
+                      })
+                      Ext.getCmp('tree').expandAll();
+                      Ext.getCmp('addClassWin').hide();
+                    }
+                  }}
+                }]
+              }
+            ]
+          })
+
+          addNewClass = function(){
+            Ext.getCmp('addClassWin').show();
+          }
+          addNewStudent = function(){
+            let classList = Ext.getCmp('tree').getRootNode().childNodes;
+            let classListComboData = [] 
+            classList.forEach(element => {
+              classListComboData.push([element.id,element.text])
+            });
+            Ext.getCmp('classList').store.loadData(classListComboData)
+            Ext.getCmp('addStudentWin').show();
+          }
+
+          let root = new Ext.tree.AsyncTreeNode({id:'school',text:'学校'});
+          var menu = new Ext.menu.Menu({
+          items: [{
+            id: 'showNode',
+            text: 'show'
+          },{
+            id: 'addNewNode',
+            text: 'add'
+          }],
+            listeners: {
+              itemclick: function(item) {
+                switch (item.id) {
+                  case 'showNode':
+                    var currentNode = item.parentMenu.contextNode;
+                    Ext.Msg.alert('greeting',currentNode.text)
+                    break;
+                  case 'addNewNode':
+                    var currentNode = item.parentMenu.contextNode;
+                    if(currentNode.id.startsWith('class')){
+                        currentNode.appendChild({
+                          id: 'student-' + Date.now().toString(36),
+                          text: '未命名',
+                          leaf: true
+                        }).select();
+                    } else if(currentNode.id.startsWith('school')){
+                        currentNode.appendChild({
+                          id: 'class-' + Date.now().toString(36),
+                          text: '未命名',
+                          children:[]
+                        })
+                        Ext.getCmp('tree').expandAll(); //添加后自动展开，不然点击新班级的add事件会'isVisible' of null
+                    } else{
+                      Ext.Msg.alert('help','如果想添加学生请点击班级add，如果想添加班级请点击学校add')
+                    }
+                    
+                }
+              }
+            }
+          });
+          
+          let tree =new Ext.tree.TreePanel({
+            id:'tree',
+            width: 200,
+            height: 400,
+            enableDD: true,
+            renderTo: 'test',
+            animate: true,
+            root: root,
+            loader: new Ext.tree.TreeLoader({dataUrl:'ClassAndStudent.txt'}),
+            rootVisible: true,
+            contextMenu: menu,
+            bbar:[
+              {
+                id: 'addStudent',
+                text: '添加学生',
+                handler:addNewStudent.createDelegate(this)
+              },'->',
+              {
+                id: 'addClass',
+                text: '添加班级',
+                handler:addNewClass.createDelegate(this)
+              }
+            ],
+            listeners:{
+              afterrender:function(){
+                this.expandAll();
+              },
+              contextmenu: function(node, e) {
+                console.log(node)
+                node.select();
+                var treeContextMenu = node.getOwnerTree().contextMenu;//获取节点所在树的contextMenu属性
+                treeContextMenu.contextNode = node; //将选中的节点信息添加到menu中，供memu的itemClick选中时获取node信息，menu中原本是没有contextNode信息
+                treeContextMenu.showAt(e.getXY()); //e是事件信息，包含了触发事件的类型和xy坐标信息,选择菜单的显示位置
+              }
+            }
+          })
+
+          tree.on('beforenodedrop', function(e) {
+            // Ext.Msg.alert('Drag Event', e.dropNode.text + ' dropping into node:' + e.target.text + ', dragging pattern is ' + e.point);
+            if(e.dropNode.id.startsWith('class') || e.dropNode.id.startsWith('student')&&e.target.id.startsWith('school') ||  e.dropNode.id.startsWith('student')&&e.target.id.startsWith('class')&&e.point === 'above'){
+              
+              e.cancel = true
+            }
+          });
+
+          let treeEditor =new Ext.tree.TreeEditor(tree , {allowBlank:false},{
+            listeners:{
+              complete:function(editor,curVal,oriVal){
+              }
+            }
+          })
+      })  
+    </script>
+</head>
+<style>
+</style>
+<body id="docbody">
+    <div id='test'></div>
+</body>
+</html>
